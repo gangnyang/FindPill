@@ -5,9 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,23 +40,29 @@ fun Loading(navController: NavController){
                 val result = uploadR.upload(pill1, pill2)
                 delay(500L)
                 showSuccess = true
+
                 val idList = result?.pill
                     ?.filterNotNull()
-                    ?.filter{it.name.isNotBlank() && it.company.isNotBlank() && it.idx !=0 }?.sortedBy{it.label?.toIntOrNull()}?.map{it.idx}
+                    ?.filter{it.name.isNotBlank() && it.company.isNotBlank() && it.idx !=0 }
+                    ?.sortedBy{it.label?.toIntOrNull()}
+                    ?.map{it.idx}
+
                 val status = result?.status
+                val jobId = result?.jobId
 
                 navController.currentBackStackEntry?.savedStateHandle?.apply{
                     set("pill_ids", idList)
                     set("status", status)
+                    set("job_id", jobId)
                 }
 
             }catch(e:Exception){
                 showFailure = true
-                Log.d("UploadImage", "try 블럭 오류 발생")
+                Log.d("UploadImage", "loading upload failed", e)
             }
         }else{
             showFailure = true
-            Log.d("UploadImage", "이미지가 널 값임")
+            Log.d("UploadImage", "image is null")
         }
     }
 
@@ -68,7 +74,7 @@ fun Loading(navController: NavController){
             CircularProgressIndicator()
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                "알약 정보를 분석 중입니다...",
+                "Analyzing pill images...",
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -78,14 +84,14 @@ fun Loading(navController: NavController){
         if(showSuccess){
             AlertDialog(
                 onDismissRequest= {},
-                title = { Text("성공")},
-                text = { Text("사진 전송이 완료되었습니다.")},
+                title = { Text("Success")},
+                text = { Text("Initial OCR result is ready.")},
                 confirmButton = {
                     Button(onClick = {
                         showSuccess = false
                         navController.navigate("result")
                     }){
-                        Text("확인")
+                        Text("OK")
                     }
                 }
 
@@ -95,8 +101,8 @@ fun Loading(navController: NavController){
         if(showFailure){
             AlertDialog(
                 onDismissRequest = {},
-                title = { Text("실패")},
-                text = {Text("사진 업로드에 실패했습니다. 다시 시도해 주세요.")},
+                title = { Text("Failed")},
+                text = {Text("Image upload failed. Please retry.")},
                 confirmButton = {
                     Button(onClick = {
                         showFailure = false
@@ -106,10 +112,11 @@ fun Loading(navController: NavController){
                         }
                         navController.popBackStack()
                     }){
-                        Text("확인")
+                        Text("OK")
                     }
                 }
             )
         }
     }
 }
+

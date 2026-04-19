@@ -35,7 +35,11 @@ data class PillInfo(
 
 data class PillSearchResponse(
     val status: String,
+    val phase: String? = null,
+    @SerializedName("job_id")
+    val jobId: String? = null,
 
     @SerializedName(value = "pill", alternate = ["results"])
     val pill: List<PillInfo?> = emptyList()
 )
+

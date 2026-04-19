@@ -6,7 +6,6 @@ import com.example.findpill.data.api.ImageApi
 import com.example.findpill.data.model.PillSearchResponse
 import com.example.findpill.ui.utils.ChangeImagePath
 import okhttp3.OkHttpClient
-import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -20,8 +19,7 @@ class UploadImage(private val context: Context){
         .build()
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("http://beatmania.app:8000/") // 서버 연결
-        //.baseUrl("http://210.217.79.69:1321/")
+        .baseUrl("http://beatmania.app:9998/") // Spring orchestrator
         .addConverterFactory(GsonConverterFactory.create())
         .client(okHttpClient)
         .build()
@@ -31,8 +29,6 @@ class UploadImage(private val context: Context){
     suspend fun upload(pill1: String, pill2: String): PillSearchResponse? {
         val front = ChangeImagePath(context, pill1, "front")
         val back = ChangeImagePath(context, pill2, "back")
-        // 앨범에서 고를때랑 사진 촬영할 때랑 경로가 달라서 이를 적절히 매핑
-
 
         return try{
             val response: Response<PillSearchResponse> = api.uploadImage(front, back)
@@ -47,8 +43,19 @@ class UploadImage(private val context: Context){
                 null
             }
         }catch(e:Exception){
-            Log.e("UploadImage", "api연결 오류", e)
+            Log.e("UploadImage", "api connect error", e)
+            null
+        }
+    }
+
+    suspend fun poll(jobId: String): PillSearchResponse? {
+        return try {
+            val response = api.pollAnalyze(jobId)
+            if (response.isSuccessful) response.body() else null
+        } catch (e: Exception) {
+            Log.e("UploadImage", "polling error", e)
             null
         }
     }
 }
+

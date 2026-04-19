@@ -17,82 +17,120 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.findpill.data.model.PillInfo
+import com.example.findpill.data.repository.UploadImage
 import com.example.findpill.ui.component.Pill
 import com.example.findpill.ui.component.TopBar
 import com.example.findpill.ui.component.dummyPillList
 import com.example.findpill.ui.viewmodel.FavoriteViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun Result(navController: NavController){
-    var result by remember {mutableStateOf<List<PillInfo>>(emptyList())}
+    var result by remember { mutableStateOf<List<PillInfo>>(emptyList()) }
     val pillIds = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<List<Int>>("pill_ids")
-    val status = navController.previousBackStackEntry
+    val initialStatus = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<String>("status")
+    val jobId = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<String>("job_id")
+
+    var currentStatus by remember { mutableStateOf(initialStatus ?: "1") }
+
+    val context = LocalContext.current
+    val uploadRepo = remember { UploadImage(context) }
     val viewmodel: FavoriteViewModel = hiltViewModel()
-    Log.d("ResultScreen", "${pillIds} , ${status}")
+
+    Log.d("ResultScreen", "ids=$pillIds, status=$initialStatus, jobId=$jobId")
+
     LaunchedEffect(pillIds){
-        if(pillIds!=null){
-            Log.d("ResultScreen", "pillIds 수신: $pillIds")
+        if(!pillIds.isNullOrEmpty()){
             result = viewmodel.loadPillsByIds(pillIds)
-            Log.d("ResultScreen", "불러온 결과: $result")
         }
     }
-    val whichpill = if(result.isNullOrEmpty()) dummyPillList else result
-    var resultisnull = false
-    if(result.isNullOrEmpty()) resultisnull=true
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.secondary)
+
+    LaunchedEffect(jobId) {
+        if (jobId == null) return@LaunchedEffect
+
+        while (true) {
+            if (currentStatus == "2") break
+            delay(3000L)
+
+            val polled = uploadRepo.poll(jobId) ?: continue
+            currentStatus = polled.status
+
+            val polledResult = polled.pill
+                .filterNotNull()
+                .filter { it.name.isNotBlank() && it.company.isNotBlank() && it.idx != 0 }
+                .sortedBy { it.label?.toIntOrNull() }
+
+            if (polledResult.isNotEmpty()) {
+                result = polledResult
+            }
+
+            if (polled.phase == "DONE" || polled.status == "2") {
+                break
+            }
+        }
+    }
+
+    val whichpill = if(result.isEmpty()) dummyPillList else result
+    val resultisnull = result.isEmpty()
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.secondary)
     ){
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            TopBar(title = "${if(pillIds.isNullOrEmpty()) 0 else pillIds.size}개의 검색 결과", onBackClick = {
-                navController.popBackStack()
-                navController.navigate("photosearch"){
-
-            } })
-
-            if (status != null) {
-                val (color, message) = when (status) {
-                    "2" -> Color.Green to "알약을 잘 찾아냈습니다."
-                    "1" -> Color.Yellow to "알약 정보가 틀릴 수 있습니다."
-                    "0"  -> Color.Red to "알약 정보가 없습니다."
-                    else   -> Color.Gray to "알 수 없는 상태입니다."
+            TopBar(
+                title = "${if(pillIds.isNullOrEmpty()) 0 else pillIds.size} result",
+                onBackClick = {
+                    navController.popBackStack()
+                    navController.navigate("photosearch")
                 }
+            )
 
-                Row(
+            val (color, message) = when (currentStatus) {
+                "2" -> Color.Green to "Final result is ready."
+                "1" -> Color.Yellow to "OCR result first. YOLO finalizing..."
+                "0" -> Color.Red to "No reliable result yet."
+                else -> Color.Gray to "Checking status..."
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp, horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp, horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .background(color, shape = CircleShape)
-                    )
+                        .size(16.dp)
+                        .background(color, shape = CircleShape)
+                )
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(
-                        text = message,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                Text(
+                    text = message,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
 
             if(resultisnull){
@@ -101,7 +139,7 @@ fun Result(navController: NavController){
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "검색 결과가 없습니다.",
+                        text = "No search result yet.",
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.bodyLarge,
                         fontSize = 26.sp
@@ -120,3 +158,4 @@ fun Result(navController: NavController){
         }
     }
 }
+
