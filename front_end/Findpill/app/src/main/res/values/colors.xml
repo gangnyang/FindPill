@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="backgroundColor">#6B4E90</color>
+    <color name="buttonColor">#000F4C</color>
+    <color name="bannerColor">#EDEDED</color>
+    <color name="bannerBoxColor">#C4C4C4</color>
+    <color name="bannerBoxBottomColor">#FFFFFF</color>
+    <color name="secondBackgroundColor">#F0F0F0</color>
+    <color name="highlightColor">#F8C9C9</color>
+</resources>

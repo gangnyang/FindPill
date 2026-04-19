@@ -1,0 +1,5 @@
+/pill-integrated/googlecredentialsocrkeysetting.json
+/pill-integrated/googlecredentialsocrkeysetting2.json
+/pill-integrated/models
+/pill-integrated/ocr_correction_model/model.safetensors
+/background-remover/models/u2net_pill_136000.onnx

@@ -1,0 +1,24 @@
+# PyCharm 프로젝트 설정 무시
+.idea/
+
+# 모델 및 학습 결과 무시
+runs/
+!runs/
+!runs/detect/
+!runs/detect/train8/
+!runs/detect/train8/weights/
+!runs/detect/train8/weights/best.pt
+images/
+images_new
+labels/
+converted_jsons/
+yolov8n.pt
+temp/
+# 가상환경 폴더 무시
+.venv/
+
+# 모델 관련 폴더 무시
+/models
+/background-remover/models
+
+# 예외적으로 best.pt는 추적

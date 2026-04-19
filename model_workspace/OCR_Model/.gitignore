@@ -1,0 +1,12 @@
+Model_Training/ModelByEpochs
+Model_Training/ocr_seq2seq_model_30
+Model_Training/ocr_seq2seq_model_35_premodel
+Model_Training/ocr_seq2seq_model_correctiononly
+ocr_correction_model
+# 용량 큰 모델 파일들 제외
+
+googlecredentialsocrkeysetting.json
+# API 키 관련 제외
+
+Training_data/OpenData_PotOpenTabletIdntfcC20250526.csv
+# 데이터 관련

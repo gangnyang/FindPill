@@ -1,0 +1,21 @@
+requirements python 3.8.12
+
+== API 서버, 배경제거 모듈
+pip install fastapi
+pip install rembg
+pip install uvicorn
+pip install onnxruntime
+pip install python-multipart
+
+== YOLO 모델
+pip install ultralytics
+
+== OCR 모델
+pip install transformers 
+pip install datasets
+pip install google-cloud-vision
+pip install opencv-python-headless
+
+
+=== PILL DB 서버
+jdk 17.0.12
