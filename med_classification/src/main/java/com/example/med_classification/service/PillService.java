@@ -1,4 +1,4 @@
-// 📁 service/PillService.java
+// ?뱚 service/PillService.java
 package com.example.med_classification.service;
 
 import com.example.med_classification.model.dto.request.PillDetectionRequestDto;
@@ -21,13 +21,14 @@ public class PillService {
 
 
     private final DrugRepository drugRepository;
+    private static final int MAX_PRELIMINARY_RESULTS = 10;
 
     public PillLookupResponseDto findBestMatch(PillDetectionRequestDto request) {
         String label = request.getLabel();
         String clazz = request.getClazz();
 
         if (clazz == null || !clazz.contains("_")) {
-            throw new RuntimeException("형식이 잘못된 class입니다.");
+            throw new RuntimeException("?뺤떇???섎せ??class?낅땲??");
         }
 
         String[] parts = clazz.split("_");
@@ -41,7 +42,7 @@ public class PillService {
 
         List<Drug> allDrugs = drugRepository.findAll();
 
-        // 1. color + shape + front + back 정확 일치
+        // 1. color + shape + front + back ?뺥솗 ?쇱튂
         for (Drug drug : allDrugs) {
             if (color.equals(drug.getColor()) &&
                     shape.equals(drug.getShape()) &&
@@ -51,7 +52,7 @@ public class PillService {
             }
         }
 
-        // 2. 편집거리 계산 및 후보 수집
+        // 2. ?몄쭛嫄곕━ 怨꾩궛 諛??꾨낫 ?섏쭛
         List<Drug> candidatesWithinDistance = new ArrayList<>();
         Drug closestDrug = null;
         int bestScore = Integer.MAX_VALUE;
@@ -60,7 +61,7 @@ public class PillService {
             int frontScore = front != null ? distance.apply(front, Optional.ofNullable(drug.getPrintFront()).orElse("")) : 100;
             int backScore = 0;
 
-            // back이 null이 아닐 경우에만 비교
+            // back??null???꾨땺 寃쎌슦?먮쭔 鍮꾧탳
             if (back != null) {
                 backScore = distance.apply(back, Optional.ofNullable(drug.getPrintBack()).orElse(""));
             }
@@ -72,13 +73,13 @@ public class PillService {
                 closestDrug = drug;
             }
 
-            // frontScore와 backScore 모두 유효할 경우만 후보로 추가
+            // frontScore? backScore 紐⑤몢 ?좏슚??寃쎌슦留??꾨낫濡?異붽?
             if (frontScore <= 3 && (back == null || backScore <= 3)) {
                 candidatesWithinDistance.add(drug);
             }
         }
 
-        // 3. 편집거리 완벽 일치 (front, back 모두)
+        // 3. ?몄쭛嫄곕━ ?꾨꼍 ?쇱튂 (front, back 紐⑤몢)
         for (Drug drug : candidatesWithinDistance) {
             int f = distance.apply(front, Optional.ofNullable(drug.getPrintFront()).orElse(""));
             int b = (back != null) ? distance.apply(back, Optional.ofNullable(drug.getPrintBack()).orElse("")) : 0;
@@ -87,7 +88,7 @@ public class PillService {
             }
         }
 
-        // 4. front or back 중 하나만 완벽 일치
+        // 4. front or back 以??섎굹留??꾨꼍 ?쇱튂
         for (Drug drug : candidatesWithinDistance) {
             int f = distance.apply(front, Optional.ofNullable(drug.getPrintFront()).orElse(""));
             int b = (back != null) ? distance.apply(back, Optional.ofNullable(drug.getPrintBack()).orElse("")) : 100;
@@ -96,19 +97,19 @@ public class PillService {
             }
         }
 
-        // 5. 편집거리 후보 중 color + shape 일치
+        // 5. ?몄쭛嫄곕━ ?꾨낫 以?color + shape ?쇱튂
         for (Drug drug : candidatesWithinDistance) {
             if (color.equals(drug.getColor()) && shape.equals(drug.getShape())) {
                 return PillLookupResponseDto.from(drug, label);
             }
         }
 
-        // 6. 그래도 없으면 가장 가까운 후보 반환
+        // 6. 洹몃옒???놁쑝硫?媛??媛源뚯슫 ?꾨낫 諛섑솚
         if (closestDrug != null) {
             return PillLookupResponseDto.from(closestDrug, label);
         }
 
-        throw new RuntimeException("유사한 알약을 찾을 수 없습니다.");
+        throw new RuntimeException("?좎궗???뚯빟??李얠쓣 ???놁뒿?덈떎.");
     }
 
 
@@ -117,7 +118,7 @@ public class PillService {
 
     public PillLookupResponseDto findById(Integer id) {
         Drug drug = drugRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("약을 찾을 수 없습니다."));
+                .orElseThrow(() -> new RuntimeException("?쎌쓣 李얠쓣 ???놁뒿?덈떎."));
         return new PillLookupResponseDto(drug);
     }
 
@@ -139,7 +140,7 @@ public class PillService {
         );
 
         if (results.isEmpty()) {
-            throw new RuntimeException("알약 정보를 찾을 수 없습니다.");
+            throw new RuntimeException("?뚯빟 ?뺣낫瑜?李얠쓣 ???놁뒿?덈떎.");
         }
 
         return results.stream()
@@ -148,8 +149,72 @@ public class PillService {
                 .collect(Collectors.toList());
     }
 
+    public List<PillLookupResponseDto> findByOcrSimilarity(List<String> frontTexts, List<String> backTexts, double threshold) {
+        List<String> normalizedFront = normalizeTokens(frontTexts);
+        List<String> normalizedBack = normalizeTokens(backTexts);
+
+        if (normalizedFront.isEmpty() && normalizedBack.isEmpty()) {
+            return List.of();
+        }
+
+        List<ScoredDrug> scored = new ArrayList<>();
+        for (Drug drug : drugRepository.findAll()) {
+            double frontScore = bestSimilarity(normalizedFront, normalize(drug.getPrintFront()));
+            double backScore = bestSimilarity(normalizedBack, normalize(drug.getPrintBack()));
+            double score = Math.max(frontScore, backScore);
+            if (score >= threshold) {
+                scored.add(new ScoredDrug(drug, score));
+            }
+        }
+
+        return scored.stream()
+                .sorted(Comparator.comparingDouble(ScoredDrug::score).reversed())
+                .limit(MAX_PRELIMINARY_RESULTS)
+                .map(scoredDrug -> new PillLookupResponseDto(scoredDrug.drug()))
+                .collect(Collectors.toList());
+    }
+
+    private List<String> normalizeTokens(List<String> tokens) {
+        if (tokens == null) {
+            return List.of();
+        }
+        return tokens.stream()
+                .filter(Objects::nonNull)
+                .map(this::normalize)
+                .filter(s -> !s.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private String normalize(String value) {
+        return value == null ? "" : value.replaceAll("[^A-Za-z0-9]", "").toUpperCase(Locale.ROOT);
+    }
+
+    private double bestSimilarity(List<String> candidates, String target) {
+        if (candidates.isEmpty() || target.isBlank()) {
+            return 0.0;
+        }
+        LevenshteinDistance distance = new LevenshteinDistance();
+        double best = 0.0;
+        for (String candidate : candidates) {
+            int maxLen = Math.max(candidate.length(), target.length());
+            if (maxLen == 0) {
+                continue;
+            }
+            int dist = distance.apply(candidate, target);
+            double similarity = 1.0 - ((double) dist / maxLen);
+            if (similarity > best) {
+                best = similarity;
+            }
+        }
+        return best;
+    }
+
+    private record ScoredDrug(Drug drug, double score) {}
+
 
 
 
 
 }
+
