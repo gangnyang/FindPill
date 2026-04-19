@@ -1,0 +1,44 @@
+﻿# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# OMX local runtime
+.omx/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.venv/
+venv/
+
+# Java / Gradle
+**/.gradle/
+**/build/
+**/bin/
+
+# Android
+**/.cxx/
+**/local.properties
+**/*.apk
+**/*.aab
+
+# Model artifacts / experiment outputs
+**/runs/
+**/temp_uploads/
+**/vision_result/
+**/test_images/
+**/*.pt
+**/*.onnx
+**/*.h5
+**/*.ckpt
+
+# Logs / reports
+**/*.log
+**/reports/
+
+# Keep wrapper binaries
+!**/gradle/wrapper/gradle-wrapper.jar
