@@ -38,10 +38,10 @@ public class PillController {
     public ResponseEntity<Object> getPill(@PathVariable Integer id) {
         try {
             PillLookupResponseDto pillDto = pillService.findById(id);
-            return ResponseEntity.ok(pillDto); // ???⑥씪 媛앹껜 洹몃?濡?諛섑솚
+            return ResponseEntity.ok(pillDto); // 단일 객체 그대로 반환
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    Map.of("message", "?뚯빟 ?뺣낫瑜?李얠쓣 ???놁뒿?덈떎.")
+                    Map.of("message", "알약 정보를 찾을 수 없습니다.")
             );
         }
     }
@@ -61,11 +61,11 @@ public class PillController {
         try {
             List<PillLookupResponseDto> pillDtoList = pillService.findByInfo(dto);
             return ResponseEntity.ok(
-                    Map.of("status", "2", "pill", pillDtoList)  // ??status: "2"
+                    Map.of("status", "2", "pill", pillDtoList)  // status: "2"
             );
         } catch (RuntimeException e) {
-            return ResponseEntity.ok(  // ??error ?묐떟??status = "2"
-                    Map.of("status", "0", "pill", List.of())   // 鍮?由ъ뒪??諛섑솚
+            return ResponseEntity.ok(  // error 응답도 status = "0"
+                    Map.of("status", "0", "pill", List.of())   // 빈 리스트 반환
             );
         }
     }

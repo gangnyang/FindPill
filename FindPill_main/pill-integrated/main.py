@@ -15,9 +15,9 @@ import json
 from typing import Dict, List
 
 app = FastAPI()
-API_URL = "http://127.0.0.1:9998/api/pill/lookup/batch"  # ?ш린??吏꾩쭨 URL ?낅젰
+API_URL = "http://127.0.0.1:9998/api/pill/lookup/batch"  # 여기에 진짜 URL 입력
 
-# ONNX 而ㅼ뒪? 紐⑤뜽 ?몄뀡 珥덇린??
+# ONNX 커스텀 모델 세션 초기화
 model_path = "models/u2net_pill_136000.onnx"
 session = new_session(model_name='u2net_custom', model_path=model_path)
 yolo_model = YOLO('models/best.pt')
@@ -32,7 +32,7 @@ class_id_to_name = {
 }
 class_id_to_name[30] = "기타_기타"
 
-# IOU 怨꾩궛 ?⑥닔
+# IOU 계산 함수
 def compute_iou(box1, box2):
     xA = max(box1[0], box2[0])
     yA = max(box1[1], box2[1])
@@ -46,7 +46,7 @@ def compute_iou(box1, box2):
     return interArea / union if union else 0
 
 
-# 以묐났 諛뺤뒪 ?쒓굅 ?⑥닔
+# 중복 박스 제거 함수
 def deduplicate_boxes(boxes, iou_threshold=0.8):
     kept = []
     used = [False] * len(boxes)
@@ -64,17 +64,17 @@ def deduplicate_boxes(boxes, iou_threshold=0.8):
             if iou > iou_threshold:
                 group.append(boxes[j])
                 used[j] = True
-        # 洹몃９ 以??좊ː???믪? 諛뺤뒪留??좎?
+        # 그룹 중 신뢰도가 가장 높은 박스만 유지
         best = max(group, key=lambda b: b["confidence"])
         kept.append(best)
     return kept
 
-# 以묒떖??怨꾩궛
+# 중심점 계산
 def center_of(box):
     x1, y1, x2, y2 = box
     return ((x1 + x2) / 2, (y1 + y2) / 2)
 
-# 嫄곕━ 怨꾩궛
+# 거리 계산
 def euclidean(p1, p2):
     return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
@@ -201,7 +201,7 @@ async def upload_image(front: UploadFile = File(...), back: UploadFile = File(..
     back_bytes = await back.read()
     log_json, _ = run_detection_with_ocr(input_bytes, back_bytes)
 
-    # ??寃곌낵 由ъ뒪??
+    # 새 결과 리스트
     final_results = []
     final_status = 0
     batch_payload = {"items": log_json["results"]}
@@ -219,13 +219,13 @@ async def upload_image(front: UploadFile = File(...), back: UploadFile = File(..
         final_results = [None] * len(log_json["results"])
         final_status = 0
 
-    # log_json ??뼱?곌린
+    # log_json 덮어쓰기
     log_json = {
         "status": final_status,
         "results": final_results
     }
 
-    # 異쒕젰
+    # 출력
     print(json.dumps(log_json, ensure_ascii=False, indent=2))
     return JSONResponse(content=log_json)
 
